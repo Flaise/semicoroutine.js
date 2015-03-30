@@ -246,6 +246,48 @@ describe('semicoroutine', () => {
         expect(c).toBe(1)
     })
 
+    it('multi-cascades into hash of generators', () => {
+        let a = 0
+        let asyncA = function*() {
+            a += 1
+            let {resultA, resultB} = yield {resultA: asyncSubA('r'), resultB: asyncSubB('n')}
+            expect(resultA).toBe('u')
+            expect(resultB).toBe(9)
+        }
+        let b = 0
+        let asyncSubA = function*(arg) {
+            expect(a).toBe(1)
+            expect(b).toBe(0)
+            b += 1
+            expect(arg).toBe('r')
+            return 'u'
+        }
+        let c = 0
+        let asyncSubB = function*(arg) {
+            expect(a).toBe(1)
+            expect(c).toBe(0)
+            c += 1
+            expect(arg).toBe('n')
+            return 9
+        }
+        
+        start(asyncA)
+
+        expect(a).toBe(0)
+        expect(b).toBe(0)
+        expect(c).toBe(0)
+
+        jasmine.clock().tick(0)
+        expect(a).toBe(1)
+        expect(b).toBe(1)
+        expect(c).toBe(1)
+
+        jasmine.clock().tick(0)
+        expect(a).toBe(1)
+        expect(b).toBe(1)
+        expect(c).toBe(1)
+    })
+
     it('multi-cascades from one generator into delayed other generators', () => {
         let a = 0
         let asyncA = function*() {
@@ -327,18 +369,19 @@ describe('semicoroutine', () => {
         expect(a).toBe(2)
     })
 
-    it('throws when multi-cascading an empty array', () => {
+    it('multi-cascading into an empty array results in an empty array', () => {
         let a = 0
         start(function*() {
-            yield []
+            let yieldment = yield []
+            expect(yieldment).toEqual([])
             a += 1
         })
 
         expect(a).toBe(0)
-        expect(() => jasmine.clock().tick(0)).toThrow()
-        expect(a).toBe(0)
-        jasmine.clock().tick(0)
-        expect(a).toBe(0)
+        jasmine.clock().tick()
+        expect(a).toBe(1)
+        jasmine.clock().tick()
+        expect(a).toBe(1)
     })
 
     it('multi-cascades from one generator into async functions', () => {
@@ -366,8 +409,8 @@ describe('semicoroutine', () => {
     })
 
     it('throws when yielding non-runnable', () => {
-        for(let arg of [0, false, NaN, '', 1, true, -1, [], [1],
-                        {}, {a: 'isungroombd'}, {next: true}, {throw: 'omg'}]) {
+        for(let arg of [0, false, NaN, '', 1, true, -1, [1],
+                        {a: 'isungroombd'}, {next: true}, {throw: 'omg'}]) {
             start(function*() { yield arg })
             expect(jasmine.clock().tick).toThrow()
         }

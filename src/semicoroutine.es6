@@ -4,16 +4,20 @@ export function start(generatorDefinition, next) {
     setTimeout(() => runGenerator(generatorDefinition(), next || throwFirst))
 }
 
-// runnable: (err, results:any):void|generator|promise|array<runnable>
+// runnable: (err, results:any):void|generator|promise|array<runnable>|hash<string, runnable>
 function run(runnable, next) {
-    if(runnable.constructor === Array)
-        runMany(runnable, next)
+    if(runnable.next && runnable.throw)
+        runGenerator(runnable, next)
     else if(runnable.then)
         runnable.then(result => next(undefined, result), err => next(err))
-    else if(runnable.next && runnable.throw)
-        runGenerator(runnable, next)
-    else
+    else if(runnable.constructor === Function)
         runnable(nextOnce(next))
+    else if(runnable.constructor === Array)
+        runArray(runnable, next)
+    else if(typeof runnable === 'object')
+        runHash(runnable, next)
+    else
+        throw new Error(runnable + ' is not runnable.')
 }
 
 function nextOnce(next) {
@@ -32,7 +36,7 @@ function throwFirst(err) {
 }
 
 function runGenerator(generator, next) {
-    let tick = (err, result) => {
+    const tick = (err, result) => {
         let status
         try {
             if(err)
@@ -54,28 +58,42 @@ function runGenerator(generator, next) {
     tick()
 }
 
-function runMany(targets, next) {
-    let length = targets.length
-    if(!length)
-        throw new Error("Can't execute empty array.")
+function runArray(targets, next) {
+    const ntargets = targets.length
+    const results = []
+    if(!ntargets)
+        return next(undefined, results)
+    const refs = {stopped: false, nresults: 0}
+    for(let i = 0; i < ntargets; i += 1) {
+        results.push(undefined)
+        run(targets[i], done(i, refs, results, ntargets, next))
+    }
+}
 
-    let stopped = false
-    let results = []
-    let completions = 0
-    let done = (index, err, subResults) => {
-        if(stopped)
+function runHash(targets, next) {
+    const keys = Object.keys(targets)
+    const ntargets = keys.length
+    const results = {}
+    if(!ntargets)
+        return next(undefined, results)
+    const refs = {stopped: false, nresults: 0}
+    for(let i = 0; i < ntargets; i += 1) {
+        const key = keys[i]
+        run(targets[key], done(key, refs, results, ntargets, next))
+    }
+}
+
+function done(key, refs, results, ntargets, next) {
+    return (err, subResults) => { // Called when one parallel task is finished
+        if(refs.stopped)
             return
         if(err) {
-            stopped = true
+            refs.stopped = true
             return next(err)
         }
-        results[index] = subResults
-        completions += 1
-        if(completions === length)
+        results[key] = subResults
+        refs.nresults += 1
+        if(refs.nresults === ntargets)
             next(undefined, results)
-    }
-    for(let i = 0; i < length; i += 1) {
-        results.push(undefined)
-        run(targets[i], (err, results) => done(i, err, results))
     }
 }

@@ -7,8 +7,8 @@ function start(generatorDefinition, next) {
   });
 }
 function run(runnable, next) {
-  if (runnable.constructor === Array) {
-    runMany(runnable, next);
+  if (runnable.next && runnable.throw) {
+    runGenerator(runnable, next);
   } else {
     if (runnable.then) {
       runnable.then(function(result) {
@@ -17,10 +17,18 @@ function run(runnable, next) {
         return next(err);
       });
     } else {
-      if (runnable.next && runnable.throw) {
-        runGenerator(runnable, next);
-      } else {
+      if (runnable.constructor === Function) {
         runnable(nextOnce(next));
+      } else {
+        if (runnable.constructor === Array) {
+          runArray(runnable, next);
+        } else {
+          if (typeof runnable === "object") {
+            runHash(runnable, next);
+          } else {
+            throw new Error(runnable + " is not runnable.");
+          }
+        }
       }
     }
   }
@@ -65,37 +73,45 @@ function runGenerator(generator, next) {
   };
   tick();
 }
-function runMany(targets, next) {
-  var length = targets.length;
-  if (!length) {
-    throw new Error("Can't execute empty array.");
-  }
-  var stopped = false;
+function runArray(targets, next) {
+  var ntargets = targets.length;
   var results = [];
-  var completions = 0;
-  var done = function(index, err, subResults) {
-    if (stopped) {
+  if (!ntargets) {
+    return next(undefined, results);
+  }
+  var refs = {stopped:false, nresults:0};
+  for (var i = 0;i < ntargets;i += 1) {
+    results.push(undefined);
+    run(targets[i], done(i, refs, results, ntargets, next));
+  }
+}
+function runHash(targets, next) {
+  var keys = Object.keys(targets);
+  var ntargets = keys.length;
+  var results = {};
+  if (!ntargets) {
+    return next(undefined, results);
+  }
+  var refs = {stopped:false, nresults:0};
+  for (var i = 0;i < ntargets;i += 1) {
+    var key = keys[i];
+    run(targets[key], done(key, refs, results, ntargets, next));
+  }
+}
+function done(key, refs, results, ntargets, next) {
+  return function(err, subResults) {
+    if (refs.stopped) {
       return;
     }
     if (err) {
-      stopped = true;
+      refs.stopped = true;
       return next(err);
     }
-    results[index] = subResults;
-    completions += 1;
-    if (completions === length) {
+    results[key] = subResults;
+    refs.nresults += 1;
+    if (refs.nresults === ntargets) {
       next(undefined, results);
     }
   };
-  var $jscomp$loop$0 = {i:undefined};
-  $jscomp$loop$0.i = 0;
-  for (;$jscomp$loop$0.i < length;$jscomp$loop$0 = {i:$jscomp$loop$0.i}, $jscomp$loop$0.i += 1) {
-    results.push(undefined);
-    run(targets[$jscomp$loop$0.i], function($jscomp$loop$0) {
-      return function(err, results) {
-        return done($jscomp$loop$0.i, err, results);
-      };
-    }($jscomp$loop$0));
-  }
 }
 ;
