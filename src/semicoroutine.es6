@@ -1,7 +1,10 @@
 
 // next: (err, results:any):void
-export function start(generatorDefinition, next) {
-    setTimeout(() => runGenerator(generatorDefinition(), next || throwFirst))
+export function start(generator, next) {
+    if(generator.constructor.name === 'GeneratorFunction')
+        generator = generator()
+    
+    setTimeout(() => runGenerator(generator, next || throwFirst))
 }
 
 // runnable: (err, results:any):void|generator|promise|array<runnable>|hash<string, runnable>

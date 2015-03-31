@@ -447,6 +447,36 @@ describe('semicoroutine', () => {
         jasmine.clock().tick()
         expect(a).toBe(1)
     })
+
+    it('can start generator instead of generator function', () => {
+        let a = 0
+        start((function*() {
+            expect(a).toBe(0)
+            a += 1
+        })())
+
+        expect(a).toBe(0)
+        jasmine.clock().tick()
+        expect(a).toBe(1)
+    })
+
+    it('executes member generator function with correct context', () => {
+        let a = 0
+        let obj = {
+            genFn: function*(arg) {
+                expect(this).toBe(obj)
+                expect(arg).toBe('n')
+                expect(a).toBe(0)
+                a += 1
+            }
+        }
+        expect(this).not.toBe(obj)
+
+        start(obj.genFn('n'))
+
+        jasmine.clock().tick()
+        expect(a).toBe(1)
+    })
 })
 
 describe('semicoroutine - promises', () => {

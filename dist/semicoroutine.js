@@ -1,9 +1,12 @@
 'use strict';Object.seal(Object.defineProperties(exports, {start:{get:function() {
   return start;
 }, enumerable:true}}));
-function start(generatorDefinition, next) {
+function start(generator, next) {
+  if (generator.constructor.name === "GeneratorFunction") {
+    generator = generator();
+  }
   setTimeout(function() {
-    return runGenerator(generatorDefinition(), next || throwFirst);
+    return runGenerator(generator, next || throwFirst);
   });
 }
 function run(runnable, next) {
