@@ -3,34 +3,8 @@
 export function start(generator, next) {
     if(generator.constructor.name === 'GeneratorFunction')
         generator = generator()
-    
-    setTimeout(() => runGenerator(generator, next || throwFirst))
-}
 
-// runnable: (err, results:any):void|generator|promise|array<runnable>|hash<string, runnable>
-function run(runnable, next) {
-    if(runnable.next && runnable.throw)
-        runGenerator(runnable, next)
-    else if(runnable.then)
-        runnable.then(result => next(undefined, result), err => next(err))
-    else if(runnable.constructor === Function)
-        runnable(nextOnce(next))
-    else if(runnable.constructor === Array)
-        runArray(runnable, next)
-    else if(typeof runnable === 'object')
-        runHash(runnable, next)
-    else
-        throw new Error(runnable + ' is not runnable.')
-}
-
-function nextOnce(next) {
-    let called = false
-    return (err, ...results) => {
-        if(called)
-            throw new Error("Can't reuse continuation function.")
-        called = true
-        return next(err, results)
-    }
+    setTimeout(() => scheduleGenerator(generator, next || throwFirst))
 }
 
 function throwFirst(err) {
@@ -38,27 +12,39 @@ function throwFirst(err) {
         throw err
 }
 
-function runGenerator(generator, next) {
-    const tick = (err, result) => {
-        let status
-        try {
-            if(err)
-                status = generator.throw(err)
-            else
-                status = generator.next(result)
-        }
-        catch(err) {
-            return next(err)
-        }
+// runnable: (err, results:any):void|generator|promise|array<runnable>|hash<string, runnable>
+function run(runnable, next) {
+    if(runnable.next && runnable.throw)
+        scheduleGenerator(runnable, next)
+    else if(runnable.then)
+        runnable.then(result => next(undefined, result), err => next(err))
+    else if(runnable.constructor === Function)
+        runFunction(runnable, next)
+    else if(runnable.constructor === Array)
+        runArray(runnable, next)
+    else if(typeof runnable === 'object')
+        runHash(runnable, next)
+    else
+        next(new Error(runnable + ' is not runnable.'))
+}
 
-        if(status.done)
-            next(undefined, status.value)
-        else if(status.value != undefined)
-            run(status.value, tick)
-        else
-            tick()
+function runFunction(runnable, next) {
+    let doneCalled = false
+    let done = (err, ...results) => {
+        if(doneCalled)
+            throw new Error("Can't reuse continuation function.")
+        doneCalled = true
+        next(err, results)
     }
-    tick()
+    try {
+        runnable(done)
+    }
+    catch(err) {
+        if(doneCalled)
+            throw err
+        else
+            done(err)
+    }
 }
 
 function runArray(targets, next) {
@@ -99,4 +85,56 @@ function done(key, refs, results, ntargets, next) {
         if(refs.nresults === ntargets)
             next(undefined, results)
     }
+}
+
+/*
+ * Clears the event queue. Intended for unit testing. If production code has to call this function
+ * then refactoring is likely in order.
+ */
+export function clear() {
+    if(generating)
+        throw new Error("Can't clear event queue while processing events.")
+    generatorsPending = []
+}
+
+
+let generatorsPending = []
+let generating = false
+
+function scheduleGenerator(generator, next, err, result) {
+    generatorsPending.push({generator: generator, next: next, err: err, result: result})
+    if(!generating) {
+        generating = true
+        runGenerators()
+    }
+}
+
+function runGenerators() {
+    while(generatorsPending.length) {
+        let {generator, next, err, result} = generatorsPending.shift()
+        let status
+        try {
+            if(err)
+                status = generator.throw(err)
+            else
+                status = generator.next(result)
+        }
+        catch(ex) {
+            if(next)
+                next(ex)
+            else
+                console.error(ex)
+            continue
+        }
+
+        if(status.done) {
+            if(next)
+                next(undefined, status.value)
+        }
+        else if(status.value != undefined)
+            run(status.value, (err, result) => scheduleGenerator(generator, next, err, result))
+        else
+            scheduleGenerator(generator, next)
+    }
+    generating = false
 }

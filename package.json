@@ -17,6 +17,7 @@
         "gobble-esperanto": "0.2.4",
         "recast": "0.10.11",
         "esprima-fb": "13001.1001.0-dev-harmony-fb",
-        "es6-module-crosspiler": "2.0.1"
+        "es6-module-crosspiler": "2.0.1",
+        "ramda": "0.13.0"
     }
 }

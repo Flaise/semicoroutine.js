@@ -1,14 +1,13 @@
-import {start} from '../src/semicoroutine'
+import {start, clear} from '../src/semicoroutine'
 
 describe('semicoroutine', () => {
     beforeEach(() => {
         jasmine.clock().install()
         jasmine.clock().mockDate()
-        
-        process.nextTick = callback => setTimeout(callback, 0)
     })
     afterEach(() => {
         jasmine.clock().uninstall()
+        clear()
     })
 
     it('runs once during next event loop cycle', () => {
@@ -142,7 +141,7 @@ describe('semicoroutine', () => {
         start(asyncA)
 
         expect(a).toBe(0)
-        jasmine.clock().tick(0)
+        jasmine.clock().tick()
         expect(a).toBe(3)
     })
 
@@ -202,6 +201,37 @@ describe('semicoroutine', () => {
         jasmine.clock().tick(0)
         expect(a).toBe(1)
         expect(b).toBe(1)
+    })
+
+    it('calls callback with first-arg error from nested call', () => {
+        let a = 0
+        let asyncA = function*() {
+            expect(a).toBe(0)
+            a += 1
+            yield asyncB()
+        }
+        let asyncB = function*() {
+            expect(a).toBe(1)
+            a += 1
+            throw new Error()
+        }
+
+        start(
+            asyncA(),
+            (err, result) => {
+                expect(result).not.toBeDefined()
+                expect(err).toBeDefined()
+                expect(a).toBe(2)
+            }
+        )
+
+        expect(a).toBe(0)
+
+        jasmine.clock().tick(0)
+        expect(a).toBe(2)
+
+        jasmine.clock().tick(0)
+        expect(a).toBe(2)
     })
 
     it('multi-cascades from one generator into many others', () => {
@@ -411,8 +441,21 @@ describe('semicoroutine', () => {
     it('throws when yielding non-runnable', () => {
         for(let arg of [0, false, NaN, '', 1, true, -1, [1],
                         {a: 'isungroombd'}, {next: true}, {throw: 'omg'}]) {
-            start(function*() { yield arg })
-            expect(jasmine.clock().tick).toThrow()
+            let a = 0
+            start(function*() {
+                expect(a).toBe(0)
+                a += 1
+                try {
+                    yield arg
+                }
+                catch(err) {
+                    a += 1
+                    return
+                }
+                fail()
+            })
+            jasmine.clock().tick()
+            expect(a).toBe(2)
         }
     })
 
@@ -480,6 +523,14 @@ describe('semicoroutine', () => {
 })
 
 describe('semicoroutine - promises', () => {
+    afterEach(done => {
+        // If it(done =>) is called, this line is in the same continuation as the generator runner
+        setTimeout(() => {
+            clear()
+            done() 
+        })
+    })
+
     it('yields until a promise has resolved', done => {
         let a = 0
         start(function*() {
