@@ -2,22 +2,28 @@ import {start, clear} from '../src/semicoroutine'
 import {curry} from 'ramda'
 
 describe('tracebacks', () => {
-    beforeEach(() => {
-        jasmine.clock().install()
-        jasmine.clock().mockDate()
-    })
-    afterEach(() => {
-        jasmine.clock().uninstall()
-        clear()
+    // beforeEach(() => {
+    //     jasmine.clock().install()
+    //     jasmine.clock().mockDate()
+    // })
+    // afterEach(() => {
+        // jasmine.clock().uninstall()
+        // clear()
+
+    afterEach(done => {
+        setTimeout(() => {
+            clear()
+            done() 
+        })
     })
 
-    it('does not lose tracebacks when calling continuation-passing style function', () => {
+    it('does not lose tracebacks when calling continuation-passing style function', done => {
         let a = 0
         let asyncA = function*(arg) {
             console.log('a')
             expect(a).toBe(0)
             a += 1
-            yield asyncB(arg)
+            yield* asyncB(arg)
         }
         let asyncB = function*(arg) {
             console.log('b')
@@ -41,12 +47,14 @@ describe('tracebacks', () => {
                 expect(err).toBeDefined()
                 expect(result).not.toBeDefined()
                 expect(err.stack).toContain('asyncB')
+
+                done()
             }
         )
 
-        jasmine.clock().tick(10)
-        expect(a).toBe(4)
-        jasmine.clock().tick(10)
-        expect(a).toBe(4)
+        // jasmine.clock().tick(10)
+        // expect(a).toBe(4)
+        // jasmine.clock().tick(10)
+        // expect(a).toBe(4)
     })
 })

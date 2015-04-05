@@ -4,12 +4,21 @@ export function start(generator, next) {
     if(generator.constructor.name === 'GeneratorFunction')
         generator = generator()
 
-    setTimeout(() => scheduleGenerator(generator, next || throwFirst))
+    setTimeout(() => scheduleGenerator(generator, wrapNext(next)))
 }
 
-function throwFirst(err) {
-    if(err)
-        throw err
+function wrapNext(next) {
+    return (err, result) => {
+        if(next)
+            try {
+                return next(err, result)
+            }
+            catch(err) {
+                console.error(err)
+            }
+        else if(err)
+            console.error(err)
+    }
 }
 
 // runnable: (err, results:any):void|generator|promise|array<runnable>|hash<string, runnable>
@@ -28,23 +37,61 @@ function run(runnable, next) {
         next(new Error(runnable + ' is not runnable.'))
 }
 
+
+import domain from 'domain'
+
 function runFunction(runnable, next) {
-    let doneCalled = false
-    let done = (err, ...results) => {
-        if(doneCalled)
+    // throw new Error()
+    let dom = domain.create()
+    //let error = new Error()
+    let stack = new Error().stack
+
+    let done = false
+    let continuation = (err, ...results) => {
+        if(done)
             throw new Error("Can't reuse continuation function.")
-        doneCalled = true
+        done = true
         next(err, results)
     }
-    try {
-        runnable(done)
-    }
-    catch(err) {
-        if(doneCalled)
+    dom.on('error', err => {
+        if(done)
+            // Error came from a call to next() which was supplied by this library.
+            // Probably an internal error.
             throw err
-        else
-            done(err)
-    }
+        done = true
+        console.log('c')
+        //next(new Error(err.stack))
+        //console.log('RRRRRRRRR', err.stack, 'CCCCCCCCCC', error.stack)
+        //error.stack = err.stack + error.stack
+
+
+        console.log('NNNNNNNNNNNNNNNN', stack)
+        console.log('>>>>>>>>>>>', err.stack)
+
+        err.stack = err.stack+stack
+
+        console.log('OOOOOOO', err.stack)
+        next(err)
+    })
+    dom.run(() => runnable(continuation))
+
+
+    // let doneCalled = false
+    // let done = (err, ...results) => {
+    //     if(doneCalled)
+    //         throw new Error("Can't reuse continuation function.")
+    //     doneCalled = true
+    //     next(err, results)
+    // }
+    // try {
+    //     runnable(done)
+    // }
+    // catch(err) {
+    //     if(doneCalled)
+    //         throw err
+    //     else
+    //         done(err)
+    // }
 }
 
 function runArray(targets, next) {
@@ -120,21 +167,17 @@ function runGenerators() {
                 status = generator.next(result)
         }
         catch(ex) {
-            if(next)
-                next(ex)
-            else
-                console.error(ex)
+            next(ex)
             continue
         }
 
-        if(status.done) {
-            if(next)
-                next(undefined, status.value)
-        }
+        if(status.done)
+            next(undefined, status.value)
         else if(status.value != undefined)
             run(status.value, (err, result) => scheduleGenerator(generator, next, err, result))
         else
             scheduleGenerator(generator, next)
     }
+
     generating = false
 }

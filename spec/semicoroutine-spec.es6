@@ -520,6 +520,25 @@ describe('semicoroutine', () => {
         jasmine.clock().tick()
         expect(a).toBe(1)
     })
+
+    it("doesn't break event loop when next() handler throws", () => {
+        let a = 0
+        start(
+            function*() {
+                expect(a).toBe(0)
+                a += 1
+            },
+            () => {
+                expect(a).toBe(1)
+                a += 1
+                throw new Error()
+            }
+        )
+
+        jasmine.clock().tick()
+        clear()
+        expect(a).toBe(2)
+    })
 })
 
 describe('semicoroutine - promises', () => {
