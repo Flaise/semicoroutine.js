@@ -204,6 +204,37 @@ describe('semicoroutine', () => {
         expect(b).toBe(1)
     })
 
+    it('calls callback with first-arg error from nested call', () => {
+        let a = 0
+        let asyncA = function*() {
+            expect(a).toBe(0)
+            a += 1
+            yield asyncB()
+        }
+        let asyncB = function*() {
+            expect(a).toBe(1)
+            a += 1
+            throw new Error()
+        }
+
+        start(
+            asyncA(),
+            (err, result) => {
+                expect(result).not.toBeDefined()
+                expect(err).toBeDefined()
+                expect(a).toBe(2)
+            }
+        )
+
+        expect(a).toBe(0)
+
+        jasmine.clock().tick(0)
+        expect(a).toBe(2)
+
+        jasmine.clock().tick(0)
+        expect(a).toBe(2)
+    })
+
     it('multi-cascades from one generator into many others', () => {
         let a = 0
         let asyncA = function*() {
@@ -414,6 +445,23 @@ describe('semicoroutine', () => {
             start(function*() { yield arg })
             expect(jasmine.clock().tick).toThrow()
         }
+    })
+
+    it('can catch error from yielding non-runnable', () => {
+        let a = 0
+        start(function*() {
+            expect(a).toBe(0)
+            a += 1
+            try {
+                yield 1
+            }
+            catch(err) {
+                return
+            }
+            fail()
+        })
+        jasmine.clock().tick()
+        expect(a).toBe(1)
     })
 
     it('yielding nothing returns undefined', () => {

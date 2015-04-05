@@ -12,7 +12,7 @@ function run(runnable, next) {
     if(runnable.next && runnable.throw)
         runGenerator(runnable, next)
     else if(runnable.then)
-        runnable.then(result => next(undefined, result), err => next(err))
+        runnable.then(result => next(undefined, result), next)
     else if(runnable.constructor === Function)
         runnable(nextOnce(next))
     else if(runnable.constructor === Array)
@@ -20,7 +20,7 @@ function run(runnable, next) {
     else if(typeof runnable === 'object')
         runHash(runnable, next)
     else
-        throw new Error(runnable + ' is not runnable.')
+        next(new Error(runnable + ' is not runnable.'))
 }
 
 function nextOnce(next) {
