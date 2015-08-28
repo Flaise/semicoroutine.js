@@ -1,11 +1,12 @@
 {
     "name": "semicoroutine",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "repository": {
         "type": "git",
         "url": "https://github.com/Flaise/semicoroutine.js.git"
     },
     "scripts": {
+        "prepublish": "npm run build",
         "test": "node ./node_modules/babel/bin/babel-node ./node_modules/jasmine/bin/jasmine.js",
         "build": "node ./node_modules/gobble-cli/lib/index.js build dist -f",
         "build-watch": "node ./node_modules/gobble-cli/lib/index.js watch dist"

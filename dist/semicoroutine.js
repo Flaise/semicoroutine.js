@@ -1,119 +1,88 @@
-'use strict';Object.seal(Object.defineProperties(exports, {start:{get:function() {
+'use strict';Object.seal(Object.defineProperties(exports, {adapt:{get:function() {
+  return adapt;
+}, enumerable:!0}, start:{get:function() {
   return start;
-}, enumerable:true}}));
-function start(generator, next) {
-  if (generator.constructor.name === "GeneratorFunction") {
-    generator = generator();
-  }
+}, enumerable:!0}}));
+function adapt(a) {
+  return function(b) {
+    for (var d = [], e = 0;e < arguments.length;++e) {
+      d[e - 0] = arguments[e];
+    }
+    return function(b) {
+      d.push(b);
+      return a.apply(this, d);
+    };
+  };
+}
+function start(a, b) {
+  "GeneratorFunction" === a.constructor.name && (a = a());
   setTimeout(function() {
-    return runGenerator(generator, next || throwFirst);
+    return runGenerator(a, b || throwFirst);
   });
 }
-function run(runnable, next) {
-  if (runnable.next && runnable.throw) {
-    runGenerator(runnable, next);
-  } else {
-    if (runnable.then) {
-      runnable.then(function(result) {
-        return next(undefined, result);
-      }, function(err) {
-        return next(err);
-      });
-    } else {
-      if (runnable.constructor === Function) {
-        runnable(nextOnce(next));
-      } else {
-        if (runnable.constructor === Array) {
-          runArray(runnable, next);
-        } else {
-          if (typeof runnable === "object") {
-            runHash(runnable, next);
-          } else {
-            throw new Error(runnable + " is not runnable.");
-          }
-        }
-      }
-    }
-  }
+function run(a, b) {
+  a.next && a.throw ? runGenerator(a, b) : a.then ? a.then(function(a) {
+    return b(void 0, a);
+  }, b) : a.constructor === Function ? a(nextOnce(b)) : a.constructor === Array ? runArray(a, b) : "object" === typeof a ? runHash(a, b) : b(Error(a + " is not runnable."));
 }
-function nextOnce(next) {
-  var called = false;
-  return function(err, results) {
-    results = [].slice.call(arguments, 1);
-    if (called) {
-      throw new Error("Can't reuse continuation function.");
+function nextOnce(a) {
+  var b = !1;
+  return function(d, e) {
+    for (var f = [], c = 1;c < arguments.length;++c) {
+      f[c - 1] = arguments[c];
     }
-    called = true;
-    return next(err, results);
+    if (b) {
+      throw Error("Can't reuse continuation function.");
+    }
+    b = !0;
+    return a(d, f);
   };
 }
-function throwFirst(err) {
-  if (err) {
-    throw err;
+function throwFirst(a) {
+  if (a) {
+    throw a;
   }
 }
-function runGenerator(generator, next) {
-  var tick = function(err, result) {
-    var status = undefined;
+function runGenerator(a, b) {
+  var d = function(e, f) {
+    var c = void 0;
     try {
-      if (err) {
-        status = generator.throw(err);
-      } else {
-        status = generator.next(result);
-      }
-    } catch (err) {
-      return next(err);
+      c = e ? a.throw(e) : a.next(f);
+    } catch (g) {
+      return b(g);
     }
-    if (status.done) {
-      next(undefined, status.value);
-    } else {
-      if (status.value != undefined) {
-        run(status.value, tick);
-      } else {
-        tick();
-      }
-    }
+    c.done ? b(void 0, c.value) : void 0 != c.value ? run(c.value, d) : d();
   };
-  tick();
+  d();
 }
-function runArray(targets, next) {
-  var ntargets = targets.length;
-  var results = [];
-  if (!ntargets) {
-    return next(undefined, results);
+function runArray(a, b) {
+  var d = a.length, e = [];
+  if (!d) {
+    return b(void 0, e);
   }
-  var refs = {stopped:false, nresults:0};
-  for (var i = 0;i < ntargets;i += 1) {
-    results.push(undefined);
-    run(targets[i], done(i, refs, results, ntargets, next));
+  for (var f = {stopped:!1, nresults:0}, c = 0;c < d;c += 1) {
+    e.push(void 0), run(a[c], done(c, f, e, d, b));
   }
 }
-function runHash(targets, next) {
-  var keys = Object.keys(targets);
-  var ntargets = keys.length;
-  var results = {};
-  if (!ntargets) {
-    return next(undefined, results);
+function runHash(a, b) {
+  var d = Object.keys(a), e = d.length, f = {};
+  if (!e) {
+    return b(void 0, f);
   }
-  var refs = {stopped:false, nresults:0};
-  for (var i = 0;i < ntargets;i += 1) {
-    var key = keys[i];
-    run(targets[key], done(key, refs, results, ntargets, next));
+  for (var c = {stopped:!1, nresults:0}, g = 0;g < e;g += 1) {
+    var h = d[g];
+    run(a[h], done(h, c, f, e, b));
   }
 }
-function done(key, refs, results, ntargets, next) {
-  return function(err, subResults) {
-    if (refs.stopped) {
-      return;
-    }
-    if (err) {
-      refs.stopped = true;
-      return next(err);
-    }
-    results[key] = subResults;
-    refs.nresults += 1;
-    if (refs.nresults === ntargets) {
-      next(undefined, results);
+function done(a, b, d, e, f) {
+  return function(c, g) {
+    if (!b.stopped) {
+      if (c) {
+        return b.stopped = !0, f(c);
+      }
+      d[a] = g;
+      b.nresults += 1;
+      b.nresults === e && f(void 0, d);
     }
   };
 }

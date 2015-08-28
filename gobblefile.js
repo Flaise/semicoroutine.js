@@ -41,7 +41,6 @@ var normal = gobble('./src')
         fileOut: 'semicoroutine.js',
         ccOptions: {language_in: 'ES6_STRICT',
                     language_out: 'ES5_STRICT',
-                    transpile_only: true,
                     formatting: 'pretty_print'}
     })
 
