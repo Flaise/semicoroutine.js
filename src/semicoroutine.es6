@@ -1,4 +1,27 @@
 
+/*
+ * Adapts a Node-style continuation-passing-style function (one that takes an (err, result) callback
+ * as the final argument) to a format that returns a function that can be yielded to the
+ * Semicoroutine generator runner. Example:
+ *
+ *     function cpsFunction(a, b, next) {
+ *         next(null, a + b)
+ *     }
+ *
+ *     var adaptedFunction = adapt(cpsFunction)
+ *
+ *     let [result] = yield adaptedFunction(1, 2) // from inside of a generator
+ *     // result is now 3
+ */
+export function adapt(cpsFunction) {
+    return function(...args) {
+        return function(next) {
+            args.push(next)
+            return cpsFunction.apply(this, args)
+        }
+    }
+}
+
 // next: (err, results:any):void
 export function start(generator, next) {
     if(generator.constructor.name === 'GeneratorFunction')

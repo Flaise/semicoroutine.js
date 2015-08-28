@@ -1,4 +1,4 @@
-import {start} from '../src/semicoroutine'
+import {start, adapt} from '../src/semicoroutine'
 
 describe('semicoroutine', () => {
     beforeEach(() => {
@@ -524,6 +524,30 @@ describe('semicoroutine', () => {
 
         jasmine.clock().tick()
         expect(a).toBe(1)
+    })
+    
+    it('adapts a node-style continuation-passing-style function', () => {
+        let r = 0
+        
+        function cpsFunction(a, b, next) {
+            expect(r).toBe(0)
+            expect(a).toBe(1)
+            expect(b).toBe(2)
+            r += 1
+            next(null, a + b)
+        }
+        
+        let adaptedFunction = adapt(cpsFunction)
+        
+        start(function*() {
+            expect(r).toBe(0)
+            let [result] = yield adaptedFunction(1, 2)
+            expect(result).toBe(3)
+            expect(r).toBe(1)
+        })
+        
+        jasmine.clock().tick()
+        expect(r).toBe(1)
     })
 })
 
