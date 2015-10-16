@@ -4,8 +4,6 @@ describe('semicoroutine', () => {
     beforeEach(() => {
         jasmine.clock().install()
         jasmine.clock().mockDate()
-        
-        process.nextTick = callback => setTimeout(callback, 0)
     })
     afterEach(() => {
         jasmine.clock().uninstall()
@@ -548,6 +546,22 @@ describe('semicoroutine', () => {
         
         jasmine.clock().tick()
         expect(r).toBe(1)
+    })
+    
+    it('adapts a generator function to continuation-passing-style', () => {
+        let r = 0
+        
+        let adapted = adapt(function*() {
+            expect(r).toBe(0)
+            return 3
+        })
+        
+        adapted((err, result) => {
+            r = result
+        })
+        
+        jasmine.clock().tick()
+        expect(r).toBe(3)
     })
 })
 

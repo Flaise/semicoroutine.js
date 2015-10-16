@@ -1,8 +1,12 @@
 
 /*
- * Adapts a Node-style continuation-passing-style function (one that takes an (err, result) callback
- * as the final argument) to a format that returns a function that can be yielded to the
- * Semicoroutine generator runner. Example:
+ * Adapts a Node-style continuation-passing-style function to a format that can be yielded to the
+ * Semicoroutine generator runner or adapts a generator or generator function to be callable as
+ * a continuation-passing-style function.
+ *
+ * If the argument is a normal function, it is assumed to take as its final argument a callback with
+ * the signature (err, result)
+ * Example:
  *
  *     function cpsFunction(a, b, next) {
  *         next(null, a + b)
@@ -12,19 +16,38 @@
  *
  *     let [result] = yield adaptedFunction(1, 2) // from inside of a generator
  *     // result is now 3
+ *
+ * If the argument is a generator or generator function, the result is a function that takes as its
+ * only argument a continuation function.
+ * Example:
+ *
+ *     it('runs an asynchronous unit test without callback hell', adapt(function*() {
+ *         yield next => setTimeout(next, 1000)
+ *         yield somethingElseAsynchronous()
+ *     }))
  */
-export function adapt(cpsFunction) {
+export function adapt(runnable) {
+    if(isGenerator(runnable) || isGeneratorFunction(runnable))
+        return (done) => start(runnable, done)
+    
     return function(...args) {
         return function(next) {
             args.push(next)
-            return cpsFunction.apply(this, args)
+            return runnable.apply(this, args)
         }
     }
 }
 
+function isGenerator(a) {
+    return a.next && !!a.throw
+}
+function isGeneratorFunction(a) {
+    return a.constructor.name === 'GeneratorFunction'
+}
+
 // next: (err, results:any):void
 export function start(generator, next) {
-    if(generator.constructor.name === 'GeneratorFunction')
+    if(isGeneratorFunction(generator))
         generator = generator()
     
     setTimeout(() => runGenerator(generator, next || throwFirst))
@@ -32,7 +55,7 @@ export function start(generator, next) {
 
 // runnable: (err, results:any):void|generator|promise|array<runnable>|hash<string, runnable>
 function run(runnable, next) {
-    if(runnable.next && runnable.throw)
+    if(isGenerator(runnable))
         runGenerator(runnable, next)
     else if(runnable.then)
         runnable.then(result => next(undefined, result), next)
