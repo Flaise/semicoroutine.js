@@ -2,3 +2,4 @@
 .gobble-build/
 spec/
 src/
+gobblefile.js
