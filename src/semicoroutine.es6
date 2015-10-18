@@ -57,6 +57,8 @@ export function start(generator, next) {
 function run(runnable, next) {
     if(isGenerator(runnable))
         runGenerator(runnable, next)
+    else if(isGeneratorFunction(runnable))
+        runGenerator(runnable(), next)
     else if(runnable.then)
         runnable.then(result => next(undefined, result), next)
     else if(runnable.constructor === Function)

@@ -9,19 +9,19 @@
   },
   "scripts": {
     "prepublish": "npm test && npm run build",
-    "test": "babel-node ./node_modules/jasmine/bin/jasmine.js",
-    "build": "gobble build dist -f",
-    "watch": "gobble watch dist"
+    "test": "babel-node ./node_modules/.bin/jasmine",
+    "build": "gobble build lib -f",
+    "watch": "gobble watch lib"
   },
-  "main": "dist/semicoroutine.js",
+  "main": "lib/semicoroutine.js",
   "dependencies": {
     "babel-runtime": "5.8.25"
   },
   "devDependencies": {
     "babel": "4.7.13",
-    "gobble": "0.7.9",
+    "gobble": "0.10.2",
     "gobble-babel": "5.5.8",
-    "gobble-cli": "0.3.5",
+    "gobble-cli": "0.5.0",
     "jasmine": "2.2.1"
   }
 }

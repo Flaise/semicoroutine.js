@@ -377,6 +377,67 @@ describe('semicoroutine', () => {
         expect(b).toBe(2)
         expect(c).toBe(2)
     })
+    
+    it('multi-cascades into generator functions', () => {
+        let a = 0
+        let asyncA = function*() {
+            expect(a).toBe(0)
+            a += 1
+            let [resultA, resultB] = yield [asyncSubA, asyncSubB]
+            expect(a).toBe(1)
+            a += 1
+            expect(resultA).toBe('u')
+            expect(resultB).toBe(9)
+        }
+        let b = 0
+        let asyncSubA = function*() {
+            const arg = 'r'
+            expect(a).toBe(1)
+            expect(b).toBe(0)
+            b += 1
+            yield next => setTimeout(next, 100)
+            expect(b).toBe(1)
+            b += 1
+            return 'u'
+        }
+        let c = 0
+        let asyncSubB = function*() {
+            const arg = 'n'
+            expect(a).toBe(1)
+            expect(c).toBe(0)
+            c += 1
+            yield next => setTimeout(next, 50)
+            expect(c).toBe(1)
+            c += 1
+            return 9
+        }
+        
+        start(asyncA)
+
+        expect(a).toBe(0)
+        expect(b).toBe(0)
+        expect(c).toBe(0)
+
+        jasmine.clock().tick(0)
+        expect(a).toBe(1)
+        expect(b).toBe(1)
+        expect(c).toBe(1)
+
+        jasmine.clock().tick(50)
+        expect(a).toBe(1)
+        expect(b).toBe(1)
+        expect(c).toBe(2)
+
+        jasmine.clock().tick(50)
+        expect(a).toBe(2)
+        expect(b).toBe(2)
+        expect(c).toBe(2)
+
+        jasmine.clock().tick(10)
+        expect(a).toBe(2)
+        expect(b).toBe(2)
+        expect(c).toBe(2)
+    })
 
     it('throws when reusing continuation', () => {
         let a = 0
