@@ -9,9 +9,9 @@
   },
   "scripts": {
     "prepublish": "npm test && npm run build",
-    "test": "node ./node_modules/babel/bin/babel-node ./node_modules/jasmine/bin/jasmine.js",
-    "build": "node ./node_modules/gobble-cli/lib/index.js build dist -f",
-    "watch": "node ./node_modules/gobble-cli/lib/index.js watch dist"
+    "test": "babel-node ./node_modules/jasmine/bin/jasmine.js",
+    "build": "gobble build dist -f",
+    "watch": "gobble watch dist"
   },
   "main": "dist/semicoroutine.js",
   "dependencies": {
