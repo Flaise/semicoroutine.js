@@ -14,6 +14,7 @@
     "watch": "gobble watch lib"
   },
   "main": "lib/semicoroutine.js",
+  "jsnext:main": "src/semicoroutine.js",
   "dependencies": {
     "babel-runtime": "5.8.25"
   },

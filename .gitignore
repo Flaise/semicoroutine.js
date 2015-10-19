@@ -2,5 +2,4 @@ node_modules
 .gobble-watch/
 .gobble-build/
 npm-debug.log
-dist/
 lib/
