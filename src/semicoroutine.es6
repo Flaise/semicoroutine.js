@@ -27,15 +27,22 @@
  *     }))
  */
 export function adapt(runnable) {
-    if(isGenerator(runnable) || isGeneratorFunction(runnable))
-        return (done) => start(runnable, done)
-    
-    return function(...args) {
-        return function(next) {
-            args.push(next)
-            return runnable.apply(this, args)
+    if(isGenerator(runnable))
+        return (next) => start(runnable, next)
+        
+    else if(isGeneratorFunction(runnable))
+        return function(...args) {
+            const next = args.pop()
+            start(runnable.apply(this, args), next)
         }
-    }
+        
+    else
+        return function(...args) {
+            return function(next) {
+                args.push(next)
+                return runnable.apply(this, args)
+            }
+        }
 }
 
 function isGenerator(a) {

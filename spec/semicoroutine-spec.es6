@@ -618,11 +618,31 @@ describe('semicoroutine', () => {
         })
         
         adapted((err, result) => {
+            expect(err).not.toBeDefined()
             r = result
         })
         
         jasmine.clock().tick()
         expect(r).toBe(3)
+    })
+    
+    it('adapts a generator function that takes parameters', () => {
+        let r = 0
+        
+        const adaptation = adapt(function*(a, b) {
+            expect(a).toBe(1)
+            expect(b).toBe(-8)
+            r += 1
+            return -3
+        })
+        
+        adaptation(1, -8, (err, result) => {
+            expect(err).not.toBeDefined()
+            expect(result).toBe(-3)
+        })
+        expect(r).toBe(0)
+        jasmine.clock().tick()
+        expect(r).toBe(1)
     })
 })
 
