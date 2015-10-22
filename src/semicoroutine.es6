@@ -1,31 +1,4 @@
 
-/*
- * Adapts a Node-style continuation-passing-style function to a format that can be yielded to the
- * Semicoroutine generator runner or adapts a generator or generator function to be callable as
- * a continuation-passing-style function.
- *
- * If the argument is a normal function, it is assumed to take as its final argument a callback with
- * the signature (err, result)
- * Example:
- *
- *     function cpsFunction(a, b, next) {
- *         next(null, a + b)
- *     }
- *
- *     var adaptedFunction = adapt(cpsFunction)
- *
- *     let [result] = yield adaptedFunction(1, 2) // from inside of a generator
- *     // result is now 3
- *
- * If the argument is a generator or generator function, the result is a function that takes as its
- * only argument a continuation function.
- * Example:
- *
- *     it('runs an asynchronous unit test without callback hell', adapt(function*() {
- *         yield next => setTimeout(next, 1000)
- *         yield somethingElseAsynchronous()
- *     }))
- */
 export function adapt(runnable) {
     if(isGenerator(runnable))
         return (next) => start(runnable, next)
