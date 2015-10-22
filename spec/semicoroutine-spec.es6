@@ -1,4 +1,4 @@
-import {start, adapt} from '..'
+import {start} from '../src/semicoroutine'
 
 describe('semicoroutine', () => {
     beforeEach(() => {
@@ -583,65 +583,5 @@ describe('semicoroutine', () => {
 
         jasmine.clock().tick()
         expect(a).toBe(1)
-    })
-    
-    it('adapts a node-style continuation-passing-style function', () => {
-        let r = 0
-        
-        function cpsFunction(a, b, next) {
-            expect(r).toBe(0)
-            expect(a).toBe(1)
-            expect(b).toBe(2)
-            r += 1
-            next(null, a + b)
-        }
-        
-        let adaptedFunction = adapt(cpsFunction)
-        
-        start(function*() {
-            expect(r).toBe(0)
-            let [result] = yield adaptedFunction(1, 2)
-            expect(result).toBe(3)
-            expect(r).toBe(1)
-        })
-        
-        jasmine.clock().tick()
-        expect(r).toBe(1)
-    })
-    
-    it('adapts a generator function to continuation-passing-style', () => {
-        let r = 0
-        
-        let adapted = adapt(function*() {
-            expect(r).toBe(0)
-            return 3
-        })
-        
-        adapted((err, result) => {
-            expect(err).not.toBeDefined()
-            r = result
-        })
-        
-        jasmine.clock().tick()
-        expect(r).toBe(3)
-    })
-    
-    it('adapts a generator function that takes parameters', () => {
-        let r = 0
-        
-        const adaptation = adapt(function*(a, b) {
-            expect(a).toBe(1)
-            expect(b).toBe(-8)
-            r += 1
-            return -3
-        })
-        
-        adaptation(1, -8, (err, result) => {
-            expect(err).not.toBeDefined()
-            expect(result).toBe(-3)
-        })
-        expect(r).toBe(0)
-        jasmine.clock().tick()
-        expect(r).toBe(1)
     })
 })

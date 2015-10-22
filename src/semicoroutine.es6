@@ -18,14 +18,18 @@ export function adapt(runnable) {
         }
 }
 
-function isGenerator(a) {
-    return a.next && !!a.throw
-}
-function isGeneratorFunction(a) {
-    return a.constructor.name === 'GeneratorFunction'
+export function adapt1(func) {
+    return function(...args) {
+        return function*() {
+            const [result] = yield function(next) {
+                args.push(next)
+                func.apply(this, args)
+            }
+            return result
+        }
+    }
 }
 
-// next: (err, results:any):void
 export function start(generator, next) {
     if(isGeneratorFunction(generator))
         generator = generator()
@@ -33,7 +37,13 @@ export function start(generator, next) {
     setTimeout(() => runGenerator(generator, next || throwFirst))
 }
 
-// runnable: (err, results:any):void|generator|promise|array<runnable>|hash<string, runnable>
+function isGenerator(a) {
+    return a.next && !!a.throw
+}
+function isGeneratorFunction(a) {
+    return a.constructor.name === 'GeneratorFunction'
+}
+
 function run(runnable, next) {
     if(runnable == undefined)
         next()

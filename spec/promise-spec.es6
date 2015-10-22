@@ -1,4 +1,4 @@
-import {start} from '..'
+import {start} from '../src/semicoroutine'
 
 describe('semicoroutine - promises', () => {
     it('yields until a promise has resolved', done => {

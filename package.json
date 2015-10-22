@@ -8,7 +8,7 @@
     "url": "https://github.com/Flaise/semicoroutine.js.git"
   },
   "scripts": {
-    "prepublish": "npm test && npm run build",
+    "prepublish": "npm run build && npm test",
     "test": "babel-node ./node_modules/.bin/jasmine",
     "build": "gobble build lib -f",
     "watch": "gobble watch lib"
