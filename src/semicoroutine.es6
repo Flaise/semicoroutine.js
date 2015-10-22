@@ -62,7 +62,9 @@ export function start(generator, next) {
 
 // runnable: (err, results:any):void|generator|promise|array<runnable>|hash<string, runnable>
 function run(runnable, next) {
-    if(isGenerator(runnable))
+    if(runnable == undefined)
+        next()
+    else if(isGenerator(runnable))
         runGenerator(runnable, next)
     else if(isGeneratorFunction(runnable))
         runGenerator(runnable(), next)
@@ -108,10 +110,8 @@ function runGenerator(generator, next) {
 
         if(status.done)
             next(undefined, status.value)
-        else if(status.value != undefined)
-            run(status.value, tick)
         else
-            tick()
+            run(status.value, tick)
     }
     tick()
 }
