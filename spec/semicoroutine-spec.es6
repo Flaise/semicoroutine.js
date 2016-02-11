@@ -1,4 +1,4 @@
-import {start} from '../src/semicoroutine'
+import {start, isAsync} from '../src/semicoroutine'
 
 describe('semicoroutine', () => {
     beforeEach(() => {
@@ -582,6 +582,19 @@ describe('semicoroutine', () => {
         start(obj.genFn('n'))
 
         jasmine.clock().tick()
+        expect(a).toBe(1)
+    })
+
+    it('can execute callbacks', () => {
+        let a = 0
+        start(function(next) {
+            a += 1
+            next()
+        })
+        expect(a).toBe(0)
+        jasmine.clock().tick(0)
+        expect(a).toBe(1)
+        jasmine.clock().tick(0)
         expect(a).toBe(1)
     })
 })

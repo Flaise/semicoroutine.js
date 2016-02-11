@@ -31,10 +31,7 @@ export function adapt1(func) {
 }
 
 export function start(generator, next) {
-    if(isGeneratorFunction(generator))
-        generator = generator()
-    
-    setTimeout(() => runGenerator(generator, next || throwFirst))
+    setTimeout(() => run(generator, next || throwFirst))
 }
 
 function isGenerator(a) {
