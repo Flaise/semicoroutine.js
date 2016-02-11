@@ -597,4 +597,70 @@ describe('semicoroutine', () => {
         jasmine.clock().tick(0)
         expect(a).toBe(1)
     })
+    
+    it('executes callbacks with parameters', () => {
+        let a = 0
+        start(function(r, next) {
+            a = r
+            next()
+        }, 9)
+        expect(a).toBe(0)
+        jasmine.clock().tick(0)
+        expect(a).toBe(9)
+        jasmine.clock().tick(0)
+        expect(a).toBe(9)
+    })
+    
+    it('executes callbacks with more parameters', () => {
+        let a = 0
+        let b = 0
+        start(function(r, s, next) {
+            a = r
+            b = s
+            next()
+        }, 9, 'a')
+        expect(a).toBe(0)
+        expect(b).toBe(0)
+        jasmine.clock().tick(0)
+        expect(a).toBe(9)
+        expect(b).toBe('a')
+        jasmine.clock().tick(0)
+        expect(a).toBe(9)
+        expect(b).toBe('a')
+    })
+    
+    it('sends callback result to continuation function', () => {
+        let a = 0
+        let b = 0
+        start(function(r, next) {
+            a = r
+            next(undefined, r + 1)
+        }, 9, function(err, [s]) {
+            expect(err).not.toBeDefined()
+            expect(a).toBe(9)
+            expect(b).toBe(0)
+            expect(s).toBe(10)
+            b = s
+        })
+        expect(a).toBe(0)
+        expect(b).toBe(0)
+        jasmine.clock().tick(0)
+        expect(a).toBe(9)
+        expect(b).toBe(10)
+        jasmine.clock().tick(0)
+        expect(a).toBe(9)
+        expect(b).toBe(10)
+    })
+    
+    it('executes generator functions with parameters', () => {
+        let a = 0
+        start(function*(r) {
+            a = r
+        }, 9)
+        expect(a).toBe(0)
+        jasmine.clock().tick(0)
+        expect(a).toBe(9)
+        jasmine.clock().tick(0)
+        expect(a).toBe(9)
+    })
 })

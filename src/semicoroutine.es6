@@ -30,8 +30,10 @@ export function adapt1(func) {
     }
 }
 
-export function start(generator, next) {
-    setTimeout(() => run(generator, next || throwFirst))
+export function start(runnable, ...args) {
+    if(typeof args[args.length - 1] !== 'function')
+        args.push(throwFirst)
+    setTimeout(() => run(runnable, ...args))
 }
 
 function isGenerator(a) {
@@ -41,17 +43,21 @@ function isGeneratorFunction(a) {
     return a.constructor.name === 'GeneratorFunction'
 }
 
-function run(runnable, next) {
+function run(runnable, ...args) {
+    const next = args.pop()
+    
     if(runnable == undefined)
         next()
     else if(isGenerator(runnable))
         runGenerator(runnable, next)
     else if(isGeneratorFunction(runnable))
-        runGenerator(runnable(), next)
+        runGenerator(runnable(...args), next)
     else if(runnable.then)
         runnable.then(result => next(undefined, result), next)
-    else if(runnable.constructor === Function)
-        runnable(nextOnce(next))
+    else if(runnable.constructor === Function) {
+        args.push(nextOnce(next))
+        runnable(...args)
+    }
     else if(runnable.constructor === Array)
         runArray(runnable, next)
     else if(typeof runnable === 'object')
