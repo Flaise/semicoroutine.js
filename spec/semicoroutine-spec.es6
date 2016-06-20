@@ -663,4 +663,17 @@ describe('semicoroutine', () => {
         jasmine.clock().tick(0)
         expect(a).toBe(9)
     })
+
+    it('will not cause a stack overflow', () => {
+        let a = 0
+        start(function*() {
+            for(let i = 0; i < 100000; i += 1) {
+                yield
+            }
+            a = 1
+        })
+        expect(a).toBe(0)
+        jasmine.clock().tick(0)
+        expect(a).toBe(1)
+    });
 })
