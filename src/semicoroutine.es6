@@ -46,7 +46,9 @@ export function isGeneratorFunction(a) {
 function run(runnable, ...args) {
     const next = args.pop()
     
-    if(isGenerator(runnable))
+    if(runnable == undefined)
+        setTimeout(next)
+    else if(isGenerator(runnable))
         runGenerator(runnable, next)
     else if(isGeneratorFunction(runnable))
         runGenerator(runnable(...args), next)
@@ -81,28 +83,21 @@ function throwFirst(err) {
 
 function runGenerator(generator, next) {
     const tick = (err, result) => {
-        while(true) {
-            let status
-            try {
-                if(err)
-                    status = generator.throw(err)
-                else
-                    status = generator.next(result)
-            }
-            catch(err2) {
-                return next(err2)
-            }
-
-            if(status.done)
-                next(undefined, status.value)
-            else if(status.value == undefined) {
-                result = status.value
-                continue
-            }
+        let status
+        try {
+            if(err)
+                status = generator.throw(err)
             else
-                run(status.value, tick)
-            break
+                status = generator.next(result)
         }
+        catch(err) {
+            return next(err)
+        }
+
+        if(status.done)
+            next(undefined, status.value)
+        else
+            run(status.value, tick)
     }
     tick()
 }

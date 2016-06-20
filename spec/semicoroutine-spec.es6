@@ -41,14 +41,14 @@ describe('semicoroutine', () => {
     it('returns control after yield', () => {
         let a = 0
         start(function*() {
-            for(var i = 0; i < 100; i += 1)
-                yield
+            yield
             a += 1
         })
         expect(a).toBe(0)
-        jasmine.clock().tick(0)
+        jasmine.clock().tick() // start
+        jasmine.clock().tick() // yield
         expect(a).toBe(1)
-        jasmine.clock().tick(0)
+        jasmine.clock().tick()
         expect(a).toBe(1)
     })
 
@@ -534,24 +534,29 @@ describe('semicoroutine', () => {
             a += 1
         })
 
-        jasmine.clock().tick()
+        jasmine.clock().tick() // start
+        jasmine.clock().tick() // yield
+        jasmine.clock().tick() // yield
         expect(a).toBe(1)
     })
 
     it('yielding nothing after yielding something returns undefined', () => {
         let a = 0
         start(function*() {
-            let [t] = yield next => next(undefined, 5)
+            let [t] = yield next => next(undefined, 5) // 1
             expect(t).toBe(5)
-            let r = yield
+            let r = yield // 2
             expect(r).toBe(undefined)
-            let s = yield
+            let s = yield // 3
             expect(s).toBe(undefined)
             expect(a).toBe(0)
             a += 1
         })
 
-        jasmine.clock().tick()
+        jasmine.clock().tick() // start
+        jasmine.clock().tick() // 1
+        jasmine.clock().tick() // 2
+        jasmine.clock().tick() // 3
         expect(a).toBe(1)
     })
 
@@ -673,7 +678,11 @@ describe('semicoroutine', () => {
             a = 1
         })
         expect(a).toBe(0)
-        jasmine.clock().tick(0)
+
+        jasmine.clock().tick() // start
+        for(let i = 0; i < 100000; i += 1) {
+            jasmine.clock().tick() // yield
+        }
         expect(a).toBe(1)
     });
 })
